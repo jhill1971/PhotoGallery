@@ -1,11 +1,15 @@
 package com.jameshill.photogallery
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
+import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.jameshill.photogallery.api.FlickrApi
 import com.jameshill.photogallery.api.FlickrResponse
 import com.jameshill.photogallery.api.PhotoResponse
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -50,11 +54,18 @@ class FlickrFetchr {
                 val photoResponse: PhotoResponse? = flickrResponse?.photos
                 var galleryItems: List<GalleryItem> = photoResponse?.galleryItems?: mutableListOf()
                 galleryItems = galleryItems.filterNot {
-                    it.url.isBlank()
+                    it.url.isNullOrBlank()
                 }
                 responseLiveData.value = galleryItems
             }
         })
         return responseLiveData
+    }
+    @WorkerThread
+    fun fetchPhoto (url: String): Bitmap? {
+        val response: Response<ResponseBody> = flickrApi.fetchUrlBytes(url).execute()
+        val bitmap = response.body()?.byteStream()?.use(BitmapFactory::decodeStream)
+        Log.i(TAG, "Decoded bitmap = $bitmap from Response = $response")
+        return bitmap
     }
 }
